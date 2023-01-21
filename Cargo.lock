@@ -27,6 +27,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "arbitrary"
+version = "1.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e90af4de65aa7b293ef2d09daff88501eb254f58edde2e1ac02c82d873eadad"
+dependencies = [
+ "derive_arbitrary",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -270,6 +279,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7618812407e9402654622dd402b0a89dff9ba93badd6540781526117b92aab7e"
 dependencies = [
  "darling_core",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "derive_arbitrary"
+version = "1.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8beee4701e2e229e8098bbdecdca12449bc3e322f137d269182fa1291e20bd00"
+dependencies = [
+ "proc-macro2",
  "quote",
  "syn",
 ]
@@ -838,8 +858,8 @@ dependencies = [
 [[package]]
 name = "soroban-env-common"
 version = "0.0.13"
-source = "git+https://github.com/stellar/rs-soroban-env?rev=a82cd119b921cc00e5985428238c6cf12108c8cd#a82cd119b921cc00e5985428238c6cf12108c8cd"
 dependencies = [
+ "arbitrary",
  "crate-git-revision",
  "serde",
  "soroban-env-macros",
@@ -860,7 +880,6 @@ dependencies = [
 [[package]]
 name = "soroban-env-host"
 version = "0.0.13"
-source = "git+https://github.com/stellar/rs-soroban-env?rev=a82cd119b921cc00e5985428238c6cf12108c8cd#a82cd119b921cc00e5985428238c6cf12108c8cd"
 dependencies = [
  "backtrace",
  "curve25519-dalek",
@@ -882,7 +901,6 @@ dependencies = [
 [[package]]
 name = "soroban-env-macros"
 version = "0.0.13"
-source = "git+https://github.com/stellar/rs-soroban-env?rev=a82cd119b921cc00e5985428238c6cf12108c8cd#a82cd119b921cc00e5985428238c6cf12108c8cd"
 dependencies = [
  "itertools",
  "proc-macro2",
@@ -908,7 +926,6 @@ dependencies = [
 [[package]]
 name = "soroban-native-sdk-macros"
 version = "0.0.13"
-source = "git+https://github.com/stellar/rs-soroban-env?rev=a82cd119b921cc00e5985428238c6cf12108c8cd#a82cd119b921cc00e5985428238c6cf12108c8cd"
 dependencies = [
  "itertools",
  "proc-macro2",
@@ -920,6 +937,7 @@ dependencies = [
 name = "soroban-sdk"
 version = "0.5.0"
 dependencies = [
+ "arbitrary",
  "bytes-lit",
  "ed25519-dalek",
  "hex",
@@ -1025,6 +1043,7 @@ name = "stellar-xdr"
 version = "0.0.13"
 source = "git+https://github.com/stellar/rs-stellar-xdr?rev=bd9deaf09fe86bd287d21527651b240e90c320b5#bd9deaf09fe86bd287d21527651b240e90c320b5"
 dependencies = [
+ "arbitrary",
  "base64",
  "crate-git-revision",
  "hex",

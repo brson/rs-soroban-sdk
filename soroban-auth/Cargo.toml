@@ -13,6 +13,9 @@ rust-version = "1.67"
 [lib]
 doctest = false
 
+[features]
+arbitrary = ["soroban-sdk/arbitrary"]
+
 [dependencies]
 soroban-sdk = { workspace = true }
 

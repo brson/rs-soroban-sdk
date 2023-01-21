@@ -2,7 +2,7 @@ use itertools::MultiUnzip;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use soroban_env_common::Symbol;
-use syn::{spanned::Spanned, DataStruct, Error, Ident, Path};
+use syn::{spanned::Spanned, DataStruct, Error, Ident, Path, Visibility};
 
 use stellar_xdr::{
     ScSpecEntry, ScSpecTypeDef, ScSpecUdtStructFieldV0, ScSpecUdtStructV0, StringM, WriteXdr,
@@ -16,6 +16,7 @@ use crate::map_type::map_type;
 
 pub fn derive_type_struct(
     path: &Path,
+    vis: &Visibility,
     ident: &Ident,
     data: &DataStruct,
     spec: bool,
@@ -111,6 +112,8 @@ pub fn derive_type_struct(
     } else {
         None
     };
+
+    let arbitrary_tokens = crate::arbitrary::derive_arbitrary_struct(path, vis, ident, data);
 
     // Output.
     quote! {
@@ -243,5 +246,7 @@ pub fn derive_type_struct(
                 (&self).try_into()
             }
         }
+
+        #arbitrary_tokens
     }
 }

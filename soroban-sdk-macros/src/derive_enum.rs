@@ -2,7 +2,7 @@ use itertools::MultiUnzip;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use soroban_env_common::Symbol;
-use syn::{spanned::Spanned, Attribute, DataEnum, Error, Fields, Ident, Path};
+use syn::{spanned::Spanned, Attribute, DataEnum, Error, Fields, Ident, Path, Visibility};
 
 use stellar_xdr::{
     ScSpecEntry, ScSpecTypeDef, ScSpecUdtUnionCaseTupleV0, ScSpecUdtUnionCaseV0,
@@ -13,6 +13,7 @@ use crate::{doc::docs_from_attrs, map_type::map_type};
 
 pub fn derive_type_enum(
     path: &Path,
+    vis: &Visibility,
     enum_ident: &Ident,
     attrs: &[Attribute],
     data: &DataEnum,
@@ -173,6 +174,8 @@ pub fn derive_type_enum(
         None
     };
 
+    let arbitrary_tokens = crate::arbitrary::derive_arbitrary_enum(path, vis, enum_ident, data);
+
     // Output.
     quote! {
         #spec_gen
@@ -307,5 +310,7 @@ pub fn derive_type_enum(
                 (&self).try_into()
             }
         }
+
+        #arbitrary_tokens
     }
 }

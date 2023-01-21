@@ -661,4 +661,6 @@ pub mod serde;
 
 pub mod testutils;
 
+pub mod arbitrary;
+
 mod tests;
