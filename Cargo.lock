@@ -869,6 +869,7 @@ dependencies = [
 name = "soroban-sdk"
 version = "0.8.0"
 dependencies = [
+ "arbitrary",
  "bytes-lit",
  "ed25519-dalek",
  "hex",

@@ -689,4 +689,7 @@ pub mod xdr;
 
 pub mod testutils;
 
+pub mod arbitrary;
+mod arbitrary_extra;
+
 mod tests;
