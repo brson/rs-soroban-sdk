@@ -11,6 +11,7 @@ mod contract_overlapping_type_fn_names;
 mod contract_snapshot;
 mod contract_store;
 mod contract_udt_enum;
+mod contract_udt_enum2;
 mod contract_udt_struct;
 mod contract_udt_struct_tuple;
 mod contractfile_with_sha256;
