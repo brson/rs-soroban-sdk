@@ -5,5 +5,5 @@ use soroban_sdk::{
 
 #[contracttype]
 pub enum Udt {
-    Aaa { b: u32 },
+    Aaa(u32, bool),
 }

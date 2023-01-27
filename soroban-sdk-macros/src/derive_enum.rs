@@ -44,9 +44,6 @@ pub fn derive_type_enum(
             if let Err(e) = Symbol::try_from_str(name) {
                 errors.push(Error::new(ident.span(), format!("enum variant name {}", e)));
             }
-            if v.fields.len() > 1 {
-                errors.push(Error::new(v.fields.span(), format!("enum variant name {} has too many tuple values, max 1 supported", ident)));
-            }
             let field_types = match v.fields {
                 Fields::Named(_) => {
                     FieldTypes::Named
@@ -358,32 +355,70 @@ fn map_tuple_variant(
             )),
         }
     };
-    let try_from = quote! {
-        #discriminant_const_u64_ident => {
-            if iter.len() > 1 {
-                return Err(#path::ConversionError);
+    let num_fields = fields.iter().len();
+    let try_from = {
+        let field_convs = fields.iter().enumerate().map(|(_i, _f)| {
+            quote! {
+                iter.next().ok_or(#path::ConversionError)??.try_into_val(env)?
             }
-            Self::#ident(iter.next().ok_or(#path::ConversionError)??.try_into_val(env)?)
+        }).collect::<Vec<_>>();
+        quote! {
+            #discriminant_const_u64_ident => {
+                if iter.len() > #num_fields {
+                    return Err(#path::ConversionError);
+                }
+                Self::#ident( #(#field_convs,)* )
+            }
         }
     };
-    let try_into = 
+    let try_into = {
+        let fragments = fields.iter().enumerate().map(|(i, _f)| {
+            let binding_name = format_ident!("value{i}");
+            let field_conv = quote! {
+                #binding_name.try_into_val(env)?
+            };
+            let tup_elem_type = quote! {
+                #path::RawVal
+            };
+            (binding_name, field_conv, tup_elem_type)
+        }).multiunzip();
+        let (binding_names, field_convs, tup_elem_types): (Vec<_>, Vec<_>, Vec<_>) = fragments;
         quote! {
-            #enum_ident::#ident(ref value) => {
-                let tup: (#path::RawVal, #path::RawVal) = (#discriminant_const_sym_ident.into(), value.try_into_val(env)?);
+            #enum_ident::#ident(#(ref #binding_names,)* ) => {
+                let tup: (#path::RawVal, #(#tup_elem_types,)* ) = (#discriminant_const_sym_ident.into(), #(#field_convs,)* );
                 tup.try_into_val(env)
             }
-    };
-    let try_from_xdr = quote! {
-        #name => {
-            if iter.len() > 1 {
-                return Err(#path::xdr::Error::Invalid);
-            }
-            let rv: #path::RawVal = iter.next().ok_or(#path::xdr::Error::Invalid)?.try_into_val(env).map_err(|_| #path::xdr::Error::Invalid)?;
-            Self::#ident(rv.try_into_val(env).map_err(|_| #path::xdr::Error::Invalid)?)
         }
     };
-    let into_xdr = quote! {
-        #enum_ident::#ident(value) => (#name, value).try_into().map_err(|_| #path::xdr::Error::Invalid)?
+    let try_from_xdr = {
+        let fragments = fields.iter().enumerate().map(|(i, _f)| {
+            let rawval_name = format_ident!("rv{i}");
+            let rawval_binding = quote! {
+                let #rawval_name: #path::RawVal = iter.next().ok_or(#path::xdr::Error::Invalid)?.try_into_val(env).map_err(|_| #path::xdr::Error::Invalid)?;
+            };
+            let into_field = quote! {
+                #rawval_name.try_into_val(env).map_err(|_| #path::xdr::Error::Invalid)?
+            };
+            (rawval_binding, into_field)
+        }).multiunzip();
+        let (rawval_bindings, into_fields): (Vec<_>, Vec<_>) = fragments;
+        quote! {
+            #name => {
+                if iter.len() > #num_fields {
+                    return Err(#path::xdr::Error::Invalid);
+                }
+                #(#rawval_bindings)*
+                Self::#ident( #(#into_fields,)* )
+            }
+        }
+    };
+    let into_xdr = {
+        let binding_names = fields.iter().enumerate().map(|(i, _f)| {
+            format_ident!("value{i}")
+        }).collect::<Vec<_>>();
+        quote! {
+            #enum_ident::#ident( #(#binding_names,)* ) => (#name, #(#binding_names,)* ).try_into().map_err(|_| #path::xdr::Error::Invalid)?
+        }
     };
 
     VariantTokens {
@@ -406,7 +441,7 @@ fn map_struct_variant(
     errors: &mut Vec<Error>,
 ) -> VariantTokens {
     let f = fields.iter().next().expect(".");
-    let field_name = f.ident.clone().unwrap_or_else(|| format_ident!("_0"));
+    let field_name = f.ident.clone().expect(".");
     let spec_case = ScSpecUdtUnionCaseV0 {
         name: name.try_into().unwrap_or_else(|_| StringM::default()),
         type_: Some(match map_type(&f.ty) {
