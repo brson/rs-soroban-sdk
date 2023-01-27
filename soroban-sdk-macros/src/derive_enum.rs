@@ -54,7 +54,6 @@ pub fn derive_type_enum(
                     FieldTypes::Unnamed
                 }
             };
-            let field = v.fields.iter().next();
             let discriminant_const_sym_ident = format_ident!("DISCRIMINANT_SYM_{}", name.to_uppercase());
             let discriminant_const_u64_ident = format_ident!("DISCRIMINANT_U64_{}", name.to_uppercase());
             let discriminant_const_sym = quote! {
@@ -67,100 +66,21 @@ pub fn derive_type_enum(
                 #discriminant_const_sym
                 #discriminant_const_u64
             };
-            if let Some(f) = field {
-                let field_name = f.ident.clone().unwrap_or_else(|| format_ident!("_0"));
-                let spec_case = ScSpecUdtUnionCaseV0 {
-                    name: name.try_into().unwrap_or_else(|_| StringM::default()),
-                    type_: Some(match map_type(&f.ty) {
-                        Ok(t) => t,
-                        Err(e) => {
-                            errors.push(e);
-                            ScSpecTypeDef::I32
-                        }
-                    }),
-                };
-                let try_from = {
-                    match field_types {
-                        FieldTypes::Unnamed => {
-                            quote! {
-                                #discriminant_const_u64_ident => {
-                                    if iter.len() > 1 {
-                                        return Err(#path::ConversionError);
-                                    }
-                                    Self::#ident(iter.next().ok_or(#path::ConversionError)??.try_into_val(env)?)
-                                }
-                            }
-                        }
-                        FieldTypes::Named => {
-                            quote! {
-                                #discriminant_const_u64_ident => {
-                                    if iter.len() > 1 {
-                                        return Err(#path::ConversionError);
-                                    }
-                                    Self::#ident {
-                                        #field_name: iter.next().ok_or(#path::ConversionError)??.try_into_val(env)?
-                                    }
-                                }
-                            }
-                        }
-                    }
-                };
-                let try_into = match field_types {
-                    FieldTypes::Unnamed => {
-                        quote! {
-                            #enum_ident::#ident(ref value) => {
-                                let tup: (#path::RawVal, #path::RawVal) = (#discriminant_const_sym_ident.into(), value.try_into_val(env)?);
-                                tup.try_into_val(env)
-                            }
-                        }
-                    }
-                    FieldTypes::Named => {
-                        quote! {
-                            #enum_ident::#ident { #field_name: ref value } => {
-                                let tup: (#path::RawVal, #path::RawVal) = (#discriminant_const_sym_ident.into(), value.try_into_val(env)?);
-                                tup.try_into_val(env)
-                            }
-                        }
-                    }
-                };
-                let try_from_xdr = match field_types {
-                    FieldTypes::Unnamed => {
-                        quote! {
-                            #name => {
-                                if iter.len() > 1 {
-                                    return Err(#path::xdr::Error::Invalid);
-                                }
-                                let rv: #path::RawVal = iter.next().ok_or(#path::xdr::Error::Invalid)?.try_into_val(env).map_err(|_| #path::xdr::Error::Invalid)?;
-                                Self::#ident(rv.try_into_val(env).map_err(|_| #path::xdr::Error::Invalid)?)
-                            }
-                        }
-                    }
-                    FieldTypes::Named => {
-                        quote! {
-                            #name => {
-                                if iter.len() > 1 {
-                                    return Err(#path::xdr::Error::Invalid);
-                                }
-                                let rv: #path::RawVal = iter.next().ok_or(#path::xdr::Error::Invalid)?.try_into_val(env).map_err(|_| #path::xdr::Error::Invalid)?;
-                                Self::#ident {
-                                    #field_name: rv.try_into_val(env).map_err(|_| #path::xdr::Error::Invalid)?
-                                }
-                            }
-                        }
-                    }
-                };
-                let into_xdr = match field_types {
-                    FieldTypes::Unnamed => {
-                        quote! {
-                            #enum_ident::#ident(value) => (#name, value).try_into().map_err(|_| #path::xdr::Error::Invalid)?
-                        }
-                    }
-                    FieldTypes::Named => {
-                        quote! {
-                            #enum_ident::#ident { #field_name: value } => (#name, value).try_into().map_err(|_| #path::xdr::Error::Invalid)?
-                        }
-                    }
-                };
+            let has_fields = v.fields.iter().next().is_some();
+            if has_fields {
+                let VariantTokens {
+                    spec_case, try_from, try_into, try_from_xdr, into_xdr
+                } = map_variant(
+                    path,
+                    enum_ident,
+                    &name,
+                    ident,
+                    &discriminant_const_sym_ident,
+                    &discriminant_const_u64_ident,
+                    field_types,
+                    &v.fields,
+                    &mut errors,
+                );
                 (spec_case, discriminant_const, try_from, try_into, try_from_xdr, into_xdr)
             } else {
                 let spec_case = ScSpecUdtUnionCaseV0 {
@@ -363,7 +283,130 @@ pub fn derive_type_enum(
     }
 }
 
-#[derive(Eq, PartialEq)]
+struct VariantTokens {
+    spec_case: ScSpecUdtUnionCaseV0,
+    try_from: TokenStream2,
+    try_into: TokenStream2,
+    try_from_xdr: TokenStream2,
+    into_xdr: TokenStream2,
+}
+
+fn map_variant(
+    path: &Path,
+    enum_ident: &Ident,
+    name: &str,
+    ident: &Ident,
+    discriminant_const_sym_ident: &Ident,
+    discriminant_const_u64_ident: &Ident,
+    field_types: FieldTypes,
+    fields: &Fields,
+    errors: &mut Vec<Error>,
+) -> VariantTokens {
+    let f = fields.iter().next().expect(".");
+    let field_name = f.ident.clone().unwrap_or_else(|| format_ident!("_0"));
+    let spec_case = ScSpecUdtUnionCaseV0 {
+        name: name.try_into().unwrap_or_else(|_| StringM::default()),
+        type_: Some(match map_type(&f.ty) {
+            Ok(t) => t,
+            Err(e) => {
+                errors.push(e);
+                ScSpecTypeDef::I32
+            }
+        }),
+    };
+    let try_from = {
+        match field_types {
+            FieldTypes::Unnamed => {
+                quote! {
+                    #discriminant_const_u64_ident => {
+                        if iter.len() > 1 {
+                            return Err(#path::ConversionError);
+                        }
+                        Self::#ident(iter.next().ok_or(#path::ConversionError)??.try_into_val(env)?)
+                    }
+                }
+            }
+            FieldTypes::Named => {
+                quote! {
+                    #discriminant_const_u64_ident => {
+                        if iter.len() > 1 {
+                            return Err(#path::ConversionError);
+                        }
+                        Self::#ident {
+                            #field_name: iter.next().ok_or(#path::ConversionError)??.try_into_val(env)?
+                        }
+                    }
+                }
+            }
+        }
+    };
+    let try_into = match field_types {
+        FieldTypes::Unnamed => {
+            quote! {
+                #enum_ident::#ident(ref value) => {
+                    let tup: (#path::RawVal, #path::RawVal) = (#discriminant_const_sym_ident.into(), value.try_into_val(env)?);
+                    tup.try_into_val(env)
+                }
+            }
+        }
+        FieldTypes::Named => {
+            quote! {
+                #enum_ident::#ident { #field_name: ref value } => {
+                    let tup: (#path::RawVal, #path::RawVal) = (#discriminant_const_sym_ident.into(), value.try_into_val(env)?);
+                    tup.try_into_val(env)
+                }
+            }
+        }
+    };
+    let try_from_xdr = match field_types {
+        FieldTypes::Unnamed => {
+            quote! {
+                #name => {
+                    if iter.len() > 1 {
+                        return Err(#path::xdr::Error::Invalid);
+                    }
+                    let rv: #path::RawVal = iter.next().ok_or(#path::xdr::Error::Invalid)?.try_into_val(env).map_err(|_| #path::xdr::Error::Invalid)?;
+                    Self::#ident(rv.try_into_val(env).map_err(|_| #path::xdr::Error::Invalid)?)
+                }
+            }
+        }
+        FieldTypes::Named => {
+            quote! {
+                #name => {
+                    if iter.len() > 1 {
+                        return Err(#path::xdr::Error::Invalid);
+                    }
+                    let rv: #path::RawVal = iter.next().ok_or(#path::xdr::Error::Invalid)?.try_into_val(env).map_err(|_| #path::xdr::Error::Invalid)?;
+                    Self::#ident {
+                        #field_name: rv.try_into_val(env).map_err(|_| #path::xdr::Error::Invalid)?
+                    }
+                }
+            }
+        }
+    };
+    let into_xdr = match field_types {
+        FieldTypes::Unnamed => {
+            quote! {
+                #enum_ident::#ident(value) => (#name, value).try_into().map_err(|_| #path::xdr::Error::Invalid)?
+            }
+        }
+        FieldTypes::Named => {
+            quote! {
+                #enum_ident::#ident { #field_name: value } => (#name, value).try_into().map_err(|_| #path::xdr::Error::Invalid)?
+            }
+        }
+    };
+
+    VariantTokens {
+        spec_case,
+        try_from,
+        try_into,
+        try_from_xdr,
+        into_xdr,
+    }
+}
+
+#[derive(Eq, PartialEq, Copy, Clone)]
 enum FieldTypes {
     Named, // struct-like variants
     Unnamed, // tuple-like variants
