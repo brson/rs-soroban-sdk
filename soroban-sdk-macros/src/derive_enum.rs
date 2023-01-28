@@ -440,18 +440,46 @@ fn map_struct_variant(
     fields: &Fields,
     errors: &mut Vec<Error>,
 ) -> VariantTokens {
-    let f = fields.iter().next().expect(".");
-    let field_name = f.ident.clone().expect(".");
-    let spec_case = ScSpecUdtUnionCaseV0 {
-        name: name.try_into().unwrap_or_else(|_| StringM::default()),
-        type_: Some(match map_type(&f.ty) {
+    // FIXME this is incorrect. can't figure out how to encode
+    // named fields without using a SpecUdtStruct, which requires
+    // a name and library
+    let spec_case = {
+        let field_types = fields.iter().map(|f| {
+            match map_type(&f.ty) {
+                Ok(t) => t,
+                Err(e) => {
+                    errors.push(e);
+                    ScSpecTypeDef::I32
+                }
+            }
+        }).collect::<Vec<_>>();
+        let field_types = match VecM::try_from(field_types) {
             Ok(t) => t,
             Err(e) => {
-                errors.push(e);
-                ScSpecTypeDef::I32
+                let v = VecM::default();
+                let max_len = v.max_len();
+                match e {
+                    XdrError::LengthExceedsMax => {
+                        errors.push(Error::new(fields.span(), format!("enum variant name {} has too many tuple values, max {} supported", ident, max_len)));
+                    }
+                    e => {
+                        errors.push(Error::new(fields.span(), format!("{e}")));
+                    }
+                }
+                v
             }
-        }),
+        };
+        ScSpecUdtUnionCaseV0 {
+            name: name.try_into().unwrap_or_else(|_| StringM::default()),
+            type_: Some(ScSpecTypeDef::Tuple(
+                Box::new(ScSpecTypeTuple {
+                    value_types: field_types,
+                })
+            )),
+        }
     };
+    let f = fields.iter().next().expect(".");
+    let field_name = f.ident.clone().expect(".");
     let try_from = quote! {
         #discriminant_const_u64_ident => {
             if iter.len() > 1 {
