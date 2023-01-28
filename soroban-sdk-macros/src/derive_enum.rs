@@ -6,6 +6,7 @@ use syn::{spanned::Spanned, DataEnum, Error, Fields, Ident, Path};
 
 use stellar_xdr::{
     ScSpecEntry, ScSpecTypeDef, ScSpecUdtUnionCaseV0, ScSpecUdtUnionV0, StringM, WriteXdr,
+    ScSpecTypeTuple, VecM, Error as XdrError,
 };
 
 use crate::map_type::map_type;
@@ -322,16 +323,40 @@ fn map_tuple_variant(
     fields: &Fields,
     errors: &mut Vec<Error>,
 ) -> VariantTokens {
-    let f = fields.iter().next().expect(".");
-    let spec_case = ScSpecUdtUnionCaseV0 {
-        name: name.try_into().unwrap_or_else(|_| StringM::default()),
-        type_: Some(match map_type(&f.ty) {
+    let spec_case = {
+        let field_types = fields.iter().map(|f| {
+            match map_type(&f.ty) {
+                Ok(t) => t,
+                Err(e) => {
+                    errors.push(e);
+                    ScSpecTypeDef::I32
+                }
+            }
+        }).collect::<Vec<_>>();
+        let field_types = match VecM::try_from(field_types) {
             Ok(t) => t,
             Err(e) => {
-                errors.push(e);
-                ScSpecTypeDef::I32
+                let v = VecM::default();
+                let max_len = v.max_len();
+                match e {
+                    XdrError::LengthExceedsMax => {
+                        errors.push(Error::new(fields.span(), format!("enum variant name {} has too many tuple values, max {} supported", ident, max_len)));
+                    }
+                    e => {
+                        errors.push(Error::new(fields.span(), format!("{e}")));
+                    }
+                }
+                v
             }
-        }),
+        };
+        ScSpecUdtUnionCaseV0 {
+            name: name.try_into().unwrap_or_else(|_| StringM::default()),
+            type_: Some(ScSpecTypeDef::Tuple(
+                Box::new(ScSpecTypeTuple {
+                    value_types: field_types,
+                })
+            )),
+        }
     };
     let try_from = quote! {
         #discriminant_const_u64_ident => {
