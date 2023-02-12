@@ -88,66 +88,77 @@ mod api {
 mod extra_into_vals {
     use crate::env::internal::BitSet;
     use crate::env::internal::Static;
-    use crate::{Env, IntoVal};
+    use crate::{Env, TryFromVal};
+    use crate::ConversionError;
     use crate::{Status, Symbol};
 
-    impl IntoVal<Env, u32> for u32 {
-        fn into_val(&self, _env: &Env) -> u32 {
-            *self
+    impl TryFromVal<Env, u32> for u32 {
+        type Error = ConversionError;
+        fn try_from_val(_env: &Env, v: &u32) -> Result<Self, Self::Error> {
+            Ok(*v)
         }
     }
 
-    impl IntoVal<Env, i32> for i32 {
-        fn into_val(&self, _env: &Env) -> i32 {
-            *self
+    impl TryFromVal<Env, i32> for i32 {
+        type Error = ConversionError;
+        fn try_from_val(_env: &Env, v: &i32) -> Result<Self, Self::Error> {
+            Ok(*v)
         }
     }
 
-    impl IntoVal<Env, u64> for u64 {
-        fn into_val(&self, _env: &Env) -> u64 {
-            *self
+    impl TryFromVal<Env, u64> for u64 {
+        type Error = ConversionError;
+        fn try_from_val(_env: &Env, v: &u64) -> Result<Self, Self::Error> {
+            Ok(*v)
         }
     }
 
-    impl IntoVal<Env, i64> for i64 {
-        fn into_val(&self, _env: &Env) -> i64 {
-            *self
+    impl TryFromVal<Env, i64> for i64 {
+        type Error = ConversionError;
+        fn try_from_val(_env: &Env, v: &i64) -> Result<Self, Self::Error> {
+            Ok(*v)
         }
     }
 
-    impl IntoVal<Env, u128> for u128 {
-        fn into_val(&self, _env: &Env) -> u128 {
-            *self
+    impl TryFromVal<Env, u128> for u128 {
+        type Error = ConversionError;
+        fn try_from_val(_env: &Env, v: &u128) -> Result<Self, Self::Error> {
+            Ok(*v)
         }
     }
 
-    impl IntoVal<Env, i128> for i128 {
-        fn into_val(&self, _env: &Env) -> i128 {
-            *self
+    impl TryFromVal<Env, i128> for i128 {
+        type Error = ConversionError;
+        fn try_from_val(_env: &Env, v: &i128) -> Result<Self, Self::Error> {
+            Ok(*v)
         }
     }
 
-    impl IntoVal<Env, Symbol> for Symbol {
-        fn into_val(&self, _env: &Env) -> Symbol {
-            *self
+    impl TryFromVal<Env, Symbol> for Symbol {
+        type Error = ConversionError;
+        fn try_from_val(_env: &Env, v: &Symbol) -> Result<Self, Self::Error> {
+            Ok(*v)
         }
     }
 
-    impl IntoVal<Env, BitSet> for BitSet {
-        fn into_val(&self, _env: &Env) -> BitSet {
-            *self
+    impl TryFromVal<Env, BitSet> for BitSet {
+        type Error = ConversionError;
+        fn try_from_val(_env: &Env, v: &BitSet) -> Result<Self, Self::Error> {
+            Ok(*v)
         }
     }
 
-    impl IntoVal<Env, Static> for Static {
-        fn into_val(&self, _env: &Env) -> Static {
-            *self
+    impl TryFromVal<Env, Static> for Static {
+        type Error = ConversionError;
+        fn try_from_val(_env: &Env, v: &Static) -> Result<Self, Self::Error> {
+            Ok(*v)
         }
     }
 
-    impl IntoVal<Env, Status> for Status {
-        fn into_val(&self, _env: &Env) -> Status {
-            *self
+    impl TryFromVal<Env, Status> for Status {
+        type Error = ConversionError;
+        fn try_from_val(_env: &Env, v: &Status) -> Result<Self, Self::Error> {
+            Ok(*v)
         }
     }
 }
@@ -283,7 +294,8 @@ mod objects {
     use arbitrary::Arbitrary;
 
     use crate::arbitrary::api::*;
-    use crate::{Env, IntoVal};
+    use crate::{Env, IntoVal, TryFromVal};
+    use crate::ConversionError;
 
     use crate::{Address, Bytes, BytesN, Map, Vec};
 
@@ -304,9 +316,10 @@ mod objects {
         type Into = Bytes;
     }
 
-    impl IntoVal<Env, Bytes> for ArbitraryBytes {
-        fn into_val(&self, env: &Env) -> Bytes {
-            self.vec.as_slice().into_val(env)
+    impl TryFromVal<Env, ArbitraryBytes> for Bytes {
+        type Error = ConversionError;
+        fn try_from_val(env: &Env, v: &ArbitraryBytes) -> Result<Self, Self::Error> {
+            Self::try_from_val(env, &v.vec.as_slice())
         }
     }
 
@@ -325,9 +338,10 @@ mod objects {
         type Into = BytesN<N>;
     }
 
-    impl<const N: usize> IntoVal<Env, BytesN<N>> for ArbitraryBytesN<N> {
-        fn into_val(&self, env: &Env) -> BytesN<N> {
-            self.array.into_val(env)
+    impl<const N: usize>  TryFromVal<Env, ArbitraryBytesN<N>> for BytesN<N> {
+        type Error = ConversionError;
+        fn try_from_val(env: &Env, v: &ArbitraryBytesN<N>) -> Result<Self, Self::Error> {
+            Self::try_from_val(env, &v.array)
         }
     }
 
@@ -355,16 +369,16 @@ mod objects {
         type Into = Vec<T::Into>;
     }
 
-    impl<T> IntoVal<Env, Vec<T::Into>> for ArbitraryVec<T>
-    where
-        T: SorobanArbitraryPrototype,
+    impl<T> TryFromVal<Env, ArbitraryVec<T>> for Vec<T::Into>
+    where T: SorobanArbitraryPrototype
     {
-        fn into_val(&self, env: &Env) -> Vec<T::Into> {
+        type Error = ConversionError;
+        fn try_from_val(env: &Env, v: &ArbitraryVec<T>) -> Result<Self, Self::Error> {
             let mut buf: Vec<T::Into> = Vec::new(env);
-            for item in self.vec.iter() {
+            for item in v.vec.iter() {
                 buf.push_back(item.into_val(env));
             }
-            buf
+            Ok(buf)
         }
     }
 
@@ -395,17 +409,17 @@ mod objects {
         type Into = Map<K::Into, V::Into>;
     }
 
-    impl<K, V> IntoVal<Env, Map<K::Into, V::Into>> for ArbitraryMap<K, V>
-    where
-        K: SorobanArbitraryPrototype,
-        V: SorobanArbitraryPrototype,
+    impl<K, V> TryFromVal<Env, ArbitraryMap<K, V>> for Map<K::Into, V::Into>
+    where K: SorobanArbitraryPrototype,
+          V: SorobanArbitraryPrototype,
     {
-        fn into_val(&self, env: &Env) -> Map<K::Into, V::Into> {
+        type Error = ConversionError;
+        fn try_from_val(env: &Env, v: &ArbitraryMap<K, V>) -> Result<Self, Self::Error> {
             let mut map: Map<K::Into, V::Into> = Map::new(env);
-            for (k, v) in self.map.iter() {
+            for (k, v) in v.map.iter() {
                 map.set(k.into_val(env), v.into_val(env));
             }
-            map
+            Ok(map)
         }
     }
 
@@ -424,14 +438,15 @@ mod objects {
         type Into = Address;
     }
 
-    impl IntoVal<Env, Address> for ArbitraryAddress {
-        fn into_val(&self, env: &Env) -> Address {
+    impl TryFromVal<Env, ArbitraryAddress> for Address {
+        type Error = ConversionError;
+        fn try_from_val(env: &Env, v: &ArbitraryAddress) -> Result<Self, Self::Error> {
             use crate::env::xdr::{Hash, ScAddress, ScObject, ScVal};
 
             let sc_addr = ScVal::Object(Some(ScObject::Address(ScAddress::Contract(Hash(
-                self.inner,
+                v.inner,
             )))));
-            sc_addr.into_val(env)
+            Ok(sc_addr.into_val(env))
         }
     }
 
@@ -467,7 +482,8 @@ mod composite {
     use arbitrary::Arbitrary;
 
     use crate::arbitrary::api::*;
-    use crate::{Env, IntoVal};
+    use crate::{Env, IntoVal, TryFromVal};
+    use crate::ConversionError;
 
     use super::objects::*;
     use super::simple::*;
@@ -500,9 +516,10 @@ mod composite {
         type Into = RawVal;
     }
 
-    impl IntoVal<Env, RawVal> for ArbitraryRawVal {
-        fn into_val(&self, env: &Env) -> RawVal {
-            match self {
+    impl TryFromVal<Env, ArbitraryRawVal> for RawVal {
+        type Error = ConversionError;
+        fn try_from_val(env: &Env, v: &ArbitraryRawVal) -> Result<Self, Self::Error> {
+            Ok(match v {
                 ArbitraryRawVal::U32(v) => v.into_val(env),
                 ArbitraryRawVal::I32(v) => v.into_val(env),
                 ArbitraryRawVal::U64(v) => v.into_val(env),
@@ -517,7 +534,7 @@ mod composite {
                     let v: Bytes = v.into_val(env);
                     v.into_val(env)
                 }
-            }
+            })
         }
     }
 }

@@ -62,13 +62,13 @@ fn derive_arbitrary_struct_common(
         .map(|(i, field)| match &field.ident {
             Some(ident) => {
                 quote! {
-                    #ident: self.#ident.into_val(env)
+                    #ident: v.#ident.into_val(env)
                 }
             }
             None => {
                 let i = syn::Index::from(i);
                 quote! {
-                    self.#i.into_val(env)
+                    v.#i.into_val(env)
                 }
             }
         })
@@ -241,7 +241,7 @@ pub fn derive_arbitrary_enum(
         }
     };
     let arbitrary_ctor = quote! {
-        match self {
+        match v {
             #(#variant_conversions,)*
         }
     };
@@ -294,7 +294,7 @@ pub fn derive_arbitrary_enum_int(
         }
     };
     let arbitrary_ctor = quote! {
-        match self {
+        match v {
             #(#variant_conversions,)*
         }
     };
@@ -339,6 +339,8 @@ fn quote_arbitrary(
 
             use #path::arbitrary::std;
             use #path::arbitrary::arbitrary;
+            // fixme fully-qualify all uses of this trait
+            use #path::IntoVal;
 
             #[cfg(feature = "arbitrary")]
             #[derive(#path::arbitrary::arbitrary::Arbitrary, Debug)]
@@ -355,9 +357,10 @@ fn quote_arbitrary(
             }
 
             #[cfg(feature = "arbitrary")]
-            impl #path::IntoVal<#path::Env, #ident> for #arbitrary_type_ident {
-                fn into_val(&self, env: &#path::Env) -> #ident {
-                    #arbitrary_ctor
+            impl #path::TryFromVal<#path::Env, #arbitrary_type_ident> for #ident {
+                type Error = #path::ConversionError;
+                fn try_from_val(env: &#path::Env, v: &#arbitrary_type_ident) -> std::result::Result<Self, Self::Error> {
+                    Ok(#arbitrary_ctor)
                 }
             }
         }
