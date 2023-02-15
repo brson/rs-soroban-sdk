@@ -43,12 +43,12 @@ fn derive_arbitrary_struct_common(
             match &field.ident {
                 Some(ident) => {
                     quote! {
-                        #ident: <#field_type as #path::arbitrary::SorobanArbitrary>::Arbitrary
+                        #ident: <#field_type as #path::arbitrary::SorobanArbitrary>::Prototype
                     }
                 }
                 None => {
                     quote! {
-                        <#field_type as #path::arbitrary::SorobanArbitrary>::Arbitrary
+                        <#field_type as #path::arbitrary::SorobanArbitrary>::Prototype
                     }
                 }
             }
@@ -135,13 +135,13 @@ pub fn derive_arbitrary_enum(
                         Some(ident) => {
                             field_types = Some(FieldType::Named);
                             quote! {
-                                #ident: <#field_type as #path::arbitrary::SorobanArbitrary>::Arbitrary
+                                #ident: <#field_type as #path::arbitrary::SorobanArbitrary>::Prototype
                             }
                         }
                         None => {
                             field_types = Some(FieldType::Unnamed);
                             quote! {
-                                <#field_type as #path::arbitrary::SorobanArbitrary>::Arbitrary
+                                <#field_type as #path::arbitrary::SorobanArbitrary>::Prototype
                             }
                         }
                     }
@@ -348,7 +348,7 @@ fn quote_arbitrary(
 
             #[cfg(feature = "arbitrary")]
             impl #path::arbitrary::SorobanArbitrary for #ident {
-                type Arbitrary = #arbitrary_type_ident;
+                type Prototype = #arbitrary_type_ident;
             }
 
             #[cfg(feature = "arbitrary")]
