@@ -352,11 +352,6 @@ fn quote_arbitrary(
             }
 
             #[cfg(feature = "arbitrary")]
-            impl #path::arbitrary::SorobanArbitraryPrototype for #arbitrary_type_ident {
-                type Into = #ident;
-            }
-
-            #[cfg(feature = "arbitrary")]
             impl #path::TryFromVal<#path::Env, #arbitrary_type_ident> for #ident {
                 type Error = #path::ConversionError;
                 fn try_from_val(env: &#path::Env, v: &#arbitrary_type_ident) -> std::result::Result<Self, Self::Error> {
