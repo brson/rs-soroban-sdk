@@ -8,6 +8,7 @@
 //!
 //! # TODO
 //!
+//! - remove arbitrary feature
 //! - BitSet, Static, Status, Symbol shouldn't be reexported here
 //! - make sure both into_val and from_val work as expected
 //! - implement TryFromVal instead of IntoVal
