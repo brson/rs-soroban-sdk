@@ -5,6 +5,9 @@
 
 mod sign;
 
+pub use crate::env::Compare;
+pub use crate::env::internal::{I128Val, U128Val};
+
 pub use sign::ed25519;
 
 use crate::{Env, RawVal, Vec};
@@ -64,7 +67,7 @@ pub mod budget {
     /// # #[cfg(not(feature = "testutils"))]
     /// # fn main() { }
     /// ```
-    pub struct Budget(crate::env::internal::budget::Budget);
+    pub struct Budget(pub crate::env::internal::budget::Budget);
 
     impl Display for Budget {
         fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
