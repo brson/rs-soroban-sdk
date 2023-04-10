@@ -269,7 +269,7 @@ mod scalars {
 mod simple {
     use crate::arbitrary::api::*;
     pub use crate::Status;
-    
+
     impl SorobanArbitrary for Status {
         type Prototype = Status;
     }
@@ -293,17 +293,17 @@ mod objects {
     use crate::ConversionError;
     use crate::{Env, IntoVal, TryFromVal};
 
-    use crate::{Address, Bytes, BytesN, Map, Symbol, Vec, RawVal};
-    use crate::xdr::{Duration, TimePoint, ScVal};
-    use soroban_env_host::{DurationVal, TimepointVal, TryIntoVal};
-    
+    use crate::xdr::{Duration, ScVal, TimePoint, Uint256};
+    use crate::{Address, Bytes, BytesN, Map, RawVal, Symbol, Vec};
+    use soroban_env_host::{DurationVal, TimepointVal, TryIntoVal, U256Val, I256Val};
+
     use std::vec::Vec as RustVec;
 
     //////////////////////////////////
-    
+
     #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
     pub struct ArbitraryTimepoint {
-        inner : u64,
+        inner: u64,
     }
 
     impl SorobanArbitrary for TimepointVal {
@@ -321,7 +321,7 @@ mod objects {
 
     #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
     pub struct ArbitraryDuration {
-        inner : u64,
+        inner: u64,
     }
 
     impl SorobanArbitrary for DurationVal {
@@ -332,6 +332,46 @@ mod objects {
         type Error = ConversionError;
         fn try_from_val(env: &Env, v: &ArbitraryDuration) -> Result<Self, Self::Error> {
             let v = ScVal::Duration(Duration::from(v.inner));
+            let v = RawVal::try_from_val(env, &v)?;
+            v.try_into_val(env)
+        }
+    }
+
+    //////////////////////////////////
+
+    #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
+    pub struct ArbitraryU256 {
+        inner: [u8; 32],
+    }
+
+    impl SorobanArbitrary for U256Val {
+        type Prototype = ArbitraryU256;
+    }
+
+    impl TryFromVal<Env, ArbitraryU256> for U256Val {
+        type Error = ConversionError;
+        fn try_from_val(env: &Env, v: &ArbitraryU256) -> Result<Self, Self::Error> {
+            let v = ScVal::U256(Uint256::from(v.inner));
+            let v = RawVal::try_from_val(env, &v)?;
+            v.try_into_val(env)
+        }
+    }
+
+    //////////////////////////////////
+
+    #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
+    pub struct ArbitraryI256 {
+        inner: [u8; 32],
+    }
+
+    impl SorobanArbitrary for I256Val {
+        type Prototype = ArbitraryI256;
+    }
+
+    impl TryFromVal<Env, ArbitraryI256> for I256Val {
+        type Error = ConversionError;
+        fn try_from_val(env: &Env, v: &ArbitraryI256) -> Result<Self, Self::Error> {
+            let v = ScVal::I256(Uint256::from(v.inner));
             let v = RawVal::try_from_val(env, &v)?;
             v.try_into_val(env)
         }
@@ -487,8 +527,8 @@ mod composite {
     use super::simple::*;
     use crate::{Address, Bytes, Map, RawVal, Vec};
 
-    use soroban_env_host::{DurationVal, TimepointVal};
- 
+    use soroban_env_host::{DurationVal, TimepointVal, U256Val, I256Val};
+
     #[derive(Arbitrary, Debug, Clone)]
     // todo eq and ord?
     pub enum ArbitraryRawVal {
@@ -503,8 +543,8 @@ mod composite {
         Duration(ArbitraryDuration),
         U128(u128),
         I128(i128),
-        // U256(Uint256),
-        // I256(Uint256),
+        U256(ArbitraryU256),
+        I256(ArbitraryI256),
         Bytes(ArbitraryBytes),
         // String(ScString),
         // Symbol(Symbol),
@@ -513,7 +553,7 @@ mod composite {
         // ContractExecutable(ScContractExecutable),
         Address(<Address as SorobanArbitrary>::Prototype),
         // LedgerKeyContractExecutable,
-        // LedgerKeyNonce(ScNonceKey),        
+        // LedgerKeyNonce(ScNonceKey),
     }
 
     impl SorobanArbitrary for RawVal {
@@ -537,6 +577,14 @@ mod composite {
                 }
                 ArbitraryRawVal::Duration(v) => {
                     let v: DurationVal = v.into_val(env);
+                    v.into_val(env)
+                }
+                ArbitraryRawVal::U256(v) => {
+                    let v: U256Val = v.into_val(env);
+                    v.into_val(env)
+                }
+                ArbitraryRawVal::I256(v) => {
+                    let v: I256Val = v.into_val(env);
                     v.into_val(env)
                 }
                 ArbitraryRawVal::U128(v) => v.into_val(env),
@@ -648,9 +696,10 @@ mod tests {
     use crate::arbitrary::*;
     use crate::{Bytes, BytesN, Map, RawVal, Vec};
     use crate::{Env, IntoVal};
-    use soroban_env_host::{DurationVal, TimepointVal};
+
     use arbitrary::{Arbitrary, Unstructured};
     use rand::RngCore;
+    use soroban_env_host::{DurationVal, TimepointVal, U256Val, I256Val};
 
     fn run_test<T>()
     where
@@ -708,7 +757,17 @@ mod tests {
     fn test_duration() {
         run_test::<DurationVal>()
     }
-    
+
+    #[test]
+    fn test_u256() {
+        run_test::<U256Val>()
+    }
+
+    #[test]
+    fn test_i256() {
+        run_test::<I256Val>()
+    }
+
     #[test]
     fn test_bytes() {
         run_test::<Bytes>()
