@@ -294,10 +294,11 @@ mod objects {
     use crate::{Env, IntoVal, TryFromVal};
 
     use crate::xdr::{Duration, ScVal, TimePoint, Uint256};
-    use crate::{Address, Bytes, BytesN, Map, RawVal, Symbol, Vec};
+    use crate::{Address, Bytes, BytesN, Map, RawVal, Symbol, Vec, String};
     use soroban_env_host::{DurationVal, TimepointVal, TryIntoVal, U256Val, I256Val};
 
     use std::vec::Vec as RustVec;
+    use std::string::String as RustString;
 
     //////////////////////////////////
 
@@ -398,6 +399,24 @@ mod objects {
     //////////////////////////////////
 
     #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
+    pub struct ArbitraryString {
+        inner: RustString,
+    }
+
+    impl SorobanArbitrary for String {
+        type Prototype = ArbitraryString;
+    }
+
+    impl TryFromVal<Env, ArbitraryString> for String {
+        type Error = ConversionError;
+        fn try_from_val(env: &Env, v: &ArbitraryString) -> Result<Self, Self::Error> {
+            Self::try_from_val(env, &v.inner.as_str())
+        }
+    }
+
+    //////////////////////////////////
+
+    #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
     pub struct ArbitraryBytesN<const N: usize> {
         array: [u8; N],
     }
@@ -417,7 +436,7 @@ mod objects {
 
     #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
     pub struct ArbitrarySymbol {
-        s: String,
+        s: RustString,
     }
 
     impl SorobanArbitrary for Symbol {
@@ -427,7 +446,7 @@ mod objects {
     impl TryFromVal<Env, ArbitrarySymbol> for Symbol {
         type Error = ConversionError;
         fn try_from_val(env: &Env, v: &ArbitrarySymbol) -> Result<Self, Self::Error> {
-            Self::try_from_val(env, &&v.s[..])
+            Self::try_from_val(env, &v.s.as_str())
         }
     }
 
@@ -525,7 +544,7 @@ mod composite {
 
     use super::objects::*;
     use super::simple::*;
-    use crate::{Address, Bytes, Map, RawVal, Vec};
+    use crate::{Address, Bytes, Map, RawVal, Vec, String, Symbol};
 
     use soroban_env_host::{DurationVal, TimepointVal, U256Val, I256Val};
 
@@ -534,7 +553,7 @@ mod composite {
     pub enum ArbitraryRawVal {
         Void,
         Bool(bool),
-        Status(Status), // ScStatus
+        Status(Status),
         U32(u32),
         I32(i32),
         U64(u64),
@@ -546,8 +565,8 @@ mod composite {
         U256(ArbitraryU256),
         I256(ArbitraryI256),
         Bytes(ArbitraryBytes),
-        // String(ScString),
-        // Symbol(Symbol),
+        String(ArbitraryString),
+        Symbol(ArbitrarySymbol),
         Vec(ArbitraryRawValVec),
         Map(ArbitraryRawValMap),
         // ContractExecutable(ScContractExecutable),
@@ -591,6 +610,14 @@ mod composite {
                 ArbitraryRawVal::I128(v) => v.into_val(env),
                 ArbitraryRawVal::Bytes(v) => {
                     let v: Bytes = v.into_val(env);
+                    v.into_val(env)
+                }
+                ArbitraryRawVal::String(v) => {
+                    let v: String = v.into_val(env);
+                    v.into_val(env)
+                }
+                ArbitraryRawVal::Symbol(v) =>  {
+                    let v: Symbol = v.into_val(env);
                     v.into_val(env)
                 }
                 ArbitraryRawVal::Vec(v) => v.into_val(env),
@@ -694,9 +721,9 @@ mod fuzz_test_helpers {
 #[cfg(test)]
 mod tests {
     use crate::arbitrary::*;
-    use crate::{Bytes, BytesN, Map, RawVal, Vec};
+    use crate::{Bytes, BytesN, Map, RawVal, Vec, String, Symbol};
     use crate::{Env, IntoVal};
-
+    
     use arbitrary::{Arbitrary, Unstructured};
     use rand::RngCore;
     use soroban_env_host::{DurationVal, TimepointVal, U256Val, I256Val};
@@ -771,6 +798,16 @@ mod tests {
     #[test]
     fn test_bytes() {
         run_test::<Bytes>()
+    }
+
+    #[test]
+    fn test_string() {
+        run_test::<String>()
+    }
+
+    #[test]
+    fn test_symbol() {
+        run_test::<Symbol>()
     }
 
     #[test]
