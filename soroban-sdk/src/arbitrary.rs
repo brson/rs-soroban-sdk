@@ -294,11 +294,11 @@ mod objects {
     use crate::{Env, IntoVal, TryFromVal};
 
     use crate::xdr::{Duration, ScVal, TimePoint, Uint256};
-    use crate::{Address, Bytes, BytesN, Map, RawVal, Symbol, Vec, String};
-    use soroban_env_host::{DurationVal, TimepointVal, TryIntoVal, U256Val, I256Val};
+    use crate::{Address, Bytes, BytesN, Map, RawVal, String, Symbol, Vec};
+    use soroban_env_host::{DurationVal, I256Val, TimepointVal, TryIntoVal, U256Val};
 
-    use std::vec::Vec as RustVec;
     use std::string::String as RustString;
+    use std::vec::Vec as RustVec;
 
     //////////////////////////////////
 
@@ -544,9 +544,9 @@ mod composite {
 
     use super::objects::*;
     use super::simple::*;
-    use crate::{Address, Bytes, Map, RawVal, Vec, String, Symbol};
+    use crate::{Address, Bytes, Map, RawVal, String, Symbol, Vec};
 
-    use soroban_env_host::{DurationVal, TimepointVal, U256Val, I256Val};
+    use soroban_env_host::{DurationVal, I256Val, TimepointVal, U256Val};
 
     #[derive(Arbitrary, Debug, Clone)]
     // todo eq and ord?
@@ -616,7 +616,7 @@ mod composite {
                     let v: String = v.into_val(env);
                     v.into_val(env)
                 }
-                ArbitraryRawVal::Symbol(v) =>  {
+                ArbitraryRawVal::Symbol(v) => {
                     let v: Symbol = v.into_val(env);
                     v.into_val(env)
                 }
@@ -721,12 +721,12 @@ mod fuzz_test_helpers {
 #[cfg(test)]
 mod tests {
     use crate::arbitrary::*;
-    use crate::{Bytes, BytesN, Map, RawVal, Vec, String, Symbol};
+    use crate::{Bytes, BytesN, Map, RawVal, String, Symbol, Vec};
     use crate::{Env, IntoVal};
-    
+
     use arbitrary::{Arbitrary, Unstructured};
     use rand::RngCore;
-    use soroban_env_host::{DurationVal, TimepointVal, U256Val, I256Val};
+    use soroban_env_host::{DurationVal, I256Val, TimepointVal, U256Val};
 
     fn run_test<T>()
     where

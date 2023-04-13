@@ -1,9 +1,9 @@
 // todo convert to proptests
 
-use crate::{Env, RawVal};
-use crate::Vec;
-use crate::{FromVal, TryFromVal};
 use crate::xdr::ScVal;
+use crate::Vec;
+use crate::{Env, RawVal};
+use crate::{FromVal, TryFromVal};
 use soroban_env_host::Compare;
 
 #[test]

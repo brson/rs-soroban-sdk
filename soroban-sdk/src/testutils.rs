@@ -5,8 +5,8 @@
 
 mod sign;
 
-pub use crate::env::Compare;
 pub use crate::env::internal::{I128Val, U128Val};
+pub use crate::env::Compare;
 
 pub use sign::ed25519;
 
