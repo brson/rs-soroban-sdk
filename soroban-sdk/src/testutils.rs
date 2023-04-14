@@ -4,6 +4,10 @@
 //! Utilities intended for use when testing.
 
 mod sign;
+
+pub use crate::env::internal::Tag;
+pub use crate::env::Compare;
+
 pub use sign::ed25519;
 
 mod mock_auth;
@@ -66,7 +70,7 @@ pub mod budget {
     /// # #[cfg(not(feature = "testutils"))]
     /// # fn main() { }
     /// ```
-    pub struct Budget(pub(crate) crate::env::internal::budget::Budget);
+    pub struct Budget(pub crate::env::internal::budget::Budget);
 
     impl Display for Budget {
         fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
