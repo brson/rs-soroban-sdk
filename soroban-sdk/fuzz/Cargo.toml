@@ -1,0 +1,42 @@
+[package]
+name = "soroban-sdk-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.soroban-sdk]
+path = ".."
+features = ["testutils"]
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "fuzz_rawval_cmp"
+path = "fuzz_targets/fuzz_rawval_cmp.rs"
+test = false
+doc = false
+
+[patch."https://github.com/stellar/rs-soroban-env"]
+soroban-env-common = { path = "../../../rs-soroban-env/soroban-env-common" }
+soroban-env-guest = { path = "../../../rs-soroban-env/soroban-env-guest" }
+soroban-env-host = { path = "../../../rs-soroban-env/soroban-env-host" }
+
+#[patch."https://github.com/stellar/rs-stellar-xdr"]
+#stellar-xdr = { path = "../../../rs-stellar-xdr" }
+
+[[bin]]
+name = "fuzz_scval_cmp"
+path = "fuzz_targets/fuzz_scval_cmp.rs"
+test = false
+doc = false

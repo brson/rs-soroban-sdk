@@ -2,6 +2,7 @@
 
 mod address;
 mod budget;
+mod comparison;
 mod contract_add_i32;
 mod contract_assert;
 mod contract_call_stack;
