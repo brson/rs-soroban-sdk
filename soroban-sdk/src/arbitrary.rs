@@ -170,6 +170,27 @@
 //! });
 //! ```
 
+// ## TODO: Adverserial values
+//
+// - objects
+//   - invalid references
+// - SorobanArbitrary for Vec<T>
+//   - elements that are not T
+//   - generate the same object again
+//   - elements that are Self - doesn't seem possible
+// - SorobanArbitrary for Map<K, V>
+//   - keys that are not K
+//   - values that are not V
+//   - generate the same object again
+//   - keys that are Self - doesn't seem possible
+//   - values that are Self - doesn't seem possible
+// - SorobanArbitrary for RawVal
+//   - bogus tags
+//   - recursive vecs - doesn't seem possible
+//   - recursive maps - doesn't seem possible
+//   - deeply nested vecs
+//   - deeply nested maps
+
 #![cfg(feature = "testutils")]
 
 /// A reexport of the `arbitrary` crate.
