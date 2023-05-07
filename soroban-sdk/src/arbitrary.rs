@@ -170,6 +170,22 @@
 //! });
 //! ```
 
+// ## TODO: Adverserial values
+//
+// - SorobanArbitrary for Vec<T>
+//   - elements that are not T
+//   - generate the same object again
+//   - elements that are Self
+// - SorobanArbitrary for Map<K, V>
+//   - keys that are not K
+//   - values that are not V
+//   - generate the same object again
+//   - keys that are Self
+//   - values that are Self
+// - SorobanArbitrary for RawVal
+//   - recursive vecs
+//   - recursive maps
+
 #![cfg(feature = "testutils")]
 
 /// A reexport of the `arbitrary` crate.
