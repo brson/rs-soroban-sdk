@@ -41,6 +41,8 @@ struct Test {
 fn scval_conversion_might_fail(env: &Env, rawval: RawVal) -> bool {
     if rawval.get_tag() == Tag::Status {
         true
+    } else if rawval.get_tag() == Tag::Bad {
+        true
     } else {
         if let Ok(v) = Vec::<RawVal>::try_from_val(env, &rawval) {
             for rawval in v {
