@@ -616,6 +616,7 @@ mod composite {
         Vec(ArbitraryRawValVec),
         Map(ArbitraryRawValMap),
         Address(<Address as SorobanArbitrary>::Prototype),
+        //BodyAndTag(u64, u8),
     }
 
     impl SorobanArbitrary for RawVal {
@@ -669,6 +670,11 @@ mod composite {
                     let v: Address = v.into_val(env);
                     v.into_val(env)
                 }
+                /*ArbitraryRawVal::BodyAndTag(body, tag) => {
+                    const TAG_BITS: usize = 8;
+                    let payload = (body << TAG_BITS) | *tag as u64;
+                    RawVal::from_payload(payload)
+                }*/
             })
         }
     }

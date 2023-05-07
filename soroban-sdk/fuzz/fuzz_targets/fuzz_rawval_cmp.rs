@@ -6,7 +6,7 @@ use libfuzzer_sys::fuzz_target;
 use soroban_sdk::arbitrary::{
     arbitrary, SorobanArbitrary,
 };
-use soroban_sdk::testutils::Compare;
+use soroban_sdk::testutils::{Compare, Tag};
 use soroban_sdk::xdr::ScVal;
 use soroban_sdk::Env;
 use soroban_sdk::RawVal;
@@ -37,6 +37,9 @@ fuzz_target!(|input: Test| {
         let scval_1 = match scval_1 {
             Ok(scval_1) => scval_1,
             Err(e) => {
+                if rawval_1.get_tag() == Tag::Bad {
+                    return;
+                }
                 panic!(
                     "couldn't convert rawval to scval:\n\
                      {rawval_1:?},\n\
@@ -48,6 +51,9 @@ fuzz_target!(|input: Test| {
         let scval_2 = match scval_2 {
             Ok(scval_2) => scval_2,
             Err(e) => {
+                if rawval_2.get_tag() == Tag::Bad {
+                    return;
+                }
                 panic!(
                     "couldn't convert rawval to scval:\n\
                      {rawval_2:?},\n\
