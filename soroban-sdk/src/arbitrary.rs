@@ -321,13 +321,20 @@ mod objects {
     };
     use soroban_env_host::TryIntoVal;
 
+    use soroban_env_host::Tag;
     use std::string::String as RustString;
     use std::vec::Vec as RustVec;
 
     //////////////////////////////////
 
     #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
-    pub struct ArbitraryU256 {
+    pub enum ArbitraryU256 {
+        Good(ArbitraryU256Good),
+        Bad,
+    }
+
+    #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
+    pub struct ArbitraryU256Good {
         parts: (u64, u64, u64, u64),
     }
 
@@ -338,21 +345,35 @@ mod objects {
     impl TryFromVal<Env, ArbitraryU256> for U256 {
         type Error = ConversionError;
         fn try_from_val(env: &Env, v: &ArbitraryU256) -> Result<Self, Self::Error> {
-            let v = ScVal::U256(UInt256Parts {
-                hi_hi: v.parts.0,
-                hi_lo: v.parts.1,
-                lo_hi: v.parts.2,
-                lo_lo: v.parts.3,
-            });
-            let v = Val::try_from_val(env, &v)?;
-            v.try_into_val(env)
+            match v {
+                ArbitraryU256::Good(v) => {
+                    let v = ScVal::U256(UInt256Parts {
+                        hi_hi: v.parts.0,
+                        hi_lo: v.parts.1,
+                        lo_hi: v.parts.2,
+                        lo_lo: v.parts.3,
+                    });
+                    let v = Val::try_from_val(env, &v)?;
+                    v.try_into_val(env)
+                }
+                ArbitraryU256::Bad => unsafe {
+                    let v = Val::from_body_and_tag(u64::MAX, Tag::U256Object);
+                    v.try_into_val(env)
+                },
+            }
         }
     }
 
     //////////////////////////////////
 
     #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
-    pub struct ArbitraryI256 {
+    pub enum ArbitraryI256 {
+        Good(ArbitraryI256Good),
+        Bad,
+    }
+
+    #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
+    pub struct ArbitraryI256Good {
         parts: (i64, u64, u64, u64),
     }
 
@@ -363,21 +384,35 @@ mod objects {
     impl TryFromVal<Env, ArbitraryI256> for I256 {
         type Error = ConversionError;
         fn try_from_val(env: &Env, v: &ArbitraryI256) -> Result<Self, Self::Error> {
-            let v = ScVal::I256(Int256Parts {
-                hi_hi: v.parts.0,
-                hi_lo: v.parts.1,
-                lo_hi: v.parts.2,
-                lo_lo: v.parts.3,
-            });
-            let v = Val::try_from_val(env, &v)?;
-            v.try_into_val(env)
+            match v {
+                ArbitraryI256::Good(v) => {
+                    let v = ScVal::I256(Int256Parts {
+                        hi_hi: v.parts.0,
+                        hi_lo: v.parts.1,
+                        lo_hi: v.parts.2,
+                        lo_lo: v.parts.3,
+                    });
+                    let v = Val::try_from_val(env, &v)?;
+                    v.try_into_val(env)
+                }
+                ArbitraryI256::Bad => unsafe {
+                    let v = Val::from_body_and_tag(u64::MAX, Tag::I256Object);
+                    v.try_into_val(env)
+                },
+            }
         }
     }
 
     //////////////////////////////////
 
     #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
-    pub struct ArbitraryBytes {
+    pub enum ArbitraryBytes {
+        Good(ArbitraryBytesGood),
+        Bad,
+    }
+
+    #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
+    pub struct ArbitraryBytesGood {
         vec: RustVec<u8>,
     }
 
@@ -388,14 +423,26 @@ mod objects {
     impl TryFromVal<Env, ArbitraryBytes> for Bytes {
         type Error = ConversionError;
         fn try_from_val(env: &Env, v: &ArbitraryBytes) -> Result<Self, Self::Error> {
-            Self::try_from_val(env, &v.vec.as_slice())
+            match v {
+                ArbitraryBytes::Good(v) => Self::try_from_val(env, &v.vec.as_slice()),
+                ArbitraryBytes::Bad => unsafe {
+                    let v = Val::from_body_and_tag(u64::MAX, Tag::BytesObject);
+                    v.try_into_val(env)
+                },
+            }
         }
     }
 
     //////////////////////////////////
 
     #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
-    pub struct ArbitraryString {
+    pub enum ArbitraryString {
+        Good(ArbitraryStringGood),
+        Bad,
+    }
+
+    #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
+    pub struct ArbitraryStringGood {
         inner: RustString,
     }
 
@@ -406,14 +453,26 @@ mod objects {
     impl TryFromVal<Env, ArbitraryString> for String {
         type Error = ConversionError;
         fn try_from_val(env: &Env, v: &ArbitraryString) -> Result<Self, Self::Error> {
-            Self::try_from_val(env, &v.inner.as_str())
+            match v {
+                ArbitraryString::Good(v) => Self::try_from_val(env, &v.inner.as_str()),
+                ArbitraryString::Bad => unsafe {
+                    let v = Val::from_body_and_tag(u64::MAX, Tag::StringObject);
+                    v.try_into_val(env)
+                },
+            }
         }
     }
 
     //////////////////////////////////
 
     #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
-    pub struct ArbitraryBytesN<const N: usize> {
+    pub enum ArbitraryBytesN<const N: usize> {
+        Good(ArbitraryBytesNGood<N>),
+        Bad,
+    }
+
+    #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
+    pub struct ArbitraryBytesNGood<const N: usize> {
         array: [u8; N],
     }
 
@@ -424,14 +483,26 @@ mod objects {
     impl<const N: usize> TryFromVal<Env, ArbitraryBytesN<N>> for BytesN<N> {
         type Error = ConversionError;
         fn try_from_val(env: &Env, v: &ArbitraryBytesN<N>) -> Result<Self, Self::Error> {
-            Self::try_from_val(env, &v.array)
+            match v {
+                ArbitraryBytesN::Good(v) => Self::try_from_val(env, &v.array),
+                ArbitraryBytesN::Bad => unsafe {
+                    let v = Val::from_body_and_tag(u64::MAX, Tag::BytesObject);
+                    v.try_into_val(env)
+                },
+            }
         }
     }
 
     //////////////////////////////////
 
     #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
-    pub struct ArbitrarySymbol {
+    pub enum ArbitrarySymbol {
+        Good(ArbitrarySymbolGood),
+        Bad,
+    }
+
+    #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
+    pub struct ArbitrarySymbolGood {
         s: RustString,
     }
 
@@ -440,14 +511,19 @@ mod objects {
             let valid_chars = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
             let valid_chars = valid_chars.as_bytes();
             let mut chars = vec![];
-            let len = u.int_in_range(0..=32)?;
-            for _ in 0..len {
-                let ch = u.choose(valid_chars)?;
-                chars.push(*ch);
+
+            if u.ratio(1, 50)? {
+                Ok(ArbitrarySymbol::Bad)
+            } else {
+                let len = u.int_in_range(0..=32)?;
+                for _ in 0..len {
+                    let ch = u.choose(valid_chars)?;
+                    chars.push(*ch);
+                }
+                Ok(ArbitrarySymbol::Good(ArbitrarySymbolGood {
+                    s: RustString::from_utf8(chars).expect("utf8"),
+                }))
             }
-            Ok(ArbitrarySymbol {
-                s: RustString::from_utf8(chars).expect("utf8"),
-            })
         }
     }
 
@@ -458,14 +534,28 @@ mod objects {
     impl TryFromVal<Env, ArbitrarySymbol> for Symbol {
         type Error = ConversionError;
         fn try_from_val(env: &Env, v: &ArbitrarySymbol) -> Result<Self, Self::Error> {
-            Self::try_from_val(env, &v.s.as_str())
+            match v {
+                ArbitrarySymbol::Good(v) => Self::try_from_val(env, &v.s.as_str()),
+                ArbitrarySymbol::Bad => unsafe {
+                    let v = Val::from_body_and_tag(u64::MAX, Tag::SymbolObject);
+                    v.try_into_val(env)
+                },
+            }
         }
     }
 
     //////////////////////////////////
 
+    // todo RustVec<Val> & Map<Val, Val>
+
     #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
-    pub struct ArbitraryVec<T> {
+    pub enum ArbitraryVec<T> {
+        Good(ArbitraryVecGood<T>),
+        Bad,
+    }
+
+    #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
+    pub struct ArbitraryVecGood<T> {
         vec: RustVec<T>,
     }
 
@@ -482,18 +572,31 @@ mod objects {
     {
         type Error = ConversionError;
         fn try_from_val(env: &Env, v: &ArbitraryVec<T::Prototype>) -> Result<Self, Self::Error> {
-            let mut buf: Vec<T> = Vec::new(env);
-            for item in v.vec.iter() {
-                buf.push_back(item.into_val(env));
+            match v {
+                ArbitraryVec::Good(v) => {
+                    let mut buf: Vec<T> = Vec::new(env);
+                    for item in v.vec.iter() {
+                        buf.push_back(item.into_val(env));
+                    }
+                    Ok(buf)
+                }
+                ArbitraryVec::Bad => unsafe {
+                    let v = Val::from_body_and_tag(u64::MAX, Tag::VecObject);
+                    v.try_into_val(env)
+                },
             }
-            Ok(buf)
         }
     }
 
     //////////////////////////////////
+    #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
+    pub enum ArbitraryMap<K, V> {
+        Good(ArbitraryMapGood<K, V>),
+        Bad,
+    }
 
     #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
-    pub struct ArbitraryMap<K, V> {
+    pub struct ArbitraryMapGood<K, V> {
         map: RustVec<(K, V)>,
     }
 
@@ -515,18 +618,31 @@ mod objects {
             env: &Env,
             v: &ArbitraryMap<K::Prototype, V::Prototype>,
         ) -> Result<Self, Self::Error> {
-            let mut map: Map<K, V> = Map::new(env);
-            for (k, v) in v.map.iter() {
-                map.set(k.into_val(env), v.into_val(env));
+            match v {
+                ArbitraryMap::Good(v) => {
+                    let mut map: Map<K, V> = Map::new(env);
+                    for (k, v) in v.map.iter() {
+                        map.set(k.into_val(env), v.into_val(env));
+                    }
+                    Ok(map)
+                }
+                ArbitraryMap::Bad => unsafe {
+                    let v = Val::from_body_and_tag(u64::MAX, Tag::MapObject);
+                    v.try_into_val(env)
+                },
             }
-            Ok(map)
         }
     }
 
     //////////////////////////////////
+    #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
+    pub enum ArbitraryAddress {
+        Good(ArbitraryAddressGood),
+        Bad,
+    }
 
     #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
-    pub struct ArbitraryAddress {
+    pub struct ArbitraryAddressGood {
         inner: [u8; 32],
     }
 
@@ -539,8 +655,16 @@ mod objects {
         fn try_from_val(env: &Env, v: &ArbitraryAddress) -> Result<Self, Self::Error> {
             use crate::env::xdr::{Hash, ScAddress};
 
-            let sc_addr = ScVal::Address(ScAddress::Contract(Hash(v.inner)));
-            Ok(sc_addr.into_val(env))
+            match v {
+                ArbitraryAddress::Good(v) => {
+                    let sc_addr = ScVal::Address(ScAddress::Contract(Hash(v.inner)));
+                    Ok(sc_addr.into_val(env))
+                }
+                ArbitraryAddress::Bad => unsafe {
+                    let v = Val::from_body_and_tag(u64::MAX, Tag::AddressObject);
+                    v.try_into_val(env)
+                },
+            }
         }
     }
 
@@ -585,8 +709,8 @@ mod objects {
 
 /// Implementations of `soroban_sdk::arbitrary::api` for `Val`.
 mod composite {
-    use soroban_env_host::Tag;
     use arbitrary::Arbitrary;
+    use soroban_env_host::Tag;
 
     use crate::arbitrary::api::*;
     use crate::ConversionError;
@@ -672,6 +796,7 @@ mod composite {
                 ArbitraryVal::Duration(v) => {
                     let v: Duration = v.into_val(env);
                     v.into_val(env)
+                }
                 ArbitraryVal::BadTagVal(v) => unsafe {
                     let v = Val::from_body_and_tag(*v, Tag::Bad);
                     v.into_val(env)
