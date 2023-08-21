@@ -585,6 +585,7 @@ mod objects {
 
 /// Implementations of `soroban_sdk::arbitrary::api` for `Val`.
 mod composite {
+    use soroban_env_host::Tag;
     use arbitrary::Arbitrary;
 
     use crate::arbitrary::api::*;
@@ -618,6 +619,7 @@ mod composite {
         Address(ArbitraryAddress),
         Timepoint(ArbitraryTimepoint),
         Duration(ArbitraryDuration),
+        BadTagVal(u64),
     }
 
     impl SorobanArbitrary for Val {
@@ -669,6 +671,9 @@ mod composite {
                 }
                 ArbitraryVal::Duration(v) => {
                     let v: Duration = v.into_val(env);
+                    v.into_val(env)
+                ArbitraryVal::BadTagVal(v) => unsafe {
+                    let v = Val::from_body_and_tag(*v, Tag::Bad);
                     v.into_val(env)
                 }
             })
