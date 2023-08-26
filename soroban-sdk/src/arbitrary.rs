@@ -321,9 +321,12 @@ mod objects {
     };
     use soroban_env_host::TryIntoVal;
 
+    use crate::arbitrary::composite::ArbitraryVal;
     use soroban_env_host::Tag;
     use std::string::String as RustString;
     use std::vec::Vec as RustVec;
+
+    use core::mem;
 
     //////////////////////////////////
 
@@ -546,17 +549,11 @@ mod objects {
 
     //////////////////////////////////
 
-    // todo RustVec<Val> & Map<Val, Val>
-
     #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
     pub enum ArbitraryVec<T> {
-        Good(ArbitraryVecGood<T>),
+        Good(RustVec<T>),
+        Wrong(RustVec<ArbitraryVal>),
         Bad,
-    }
-
-    #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
-    pub struct ArbitraryVecGood<T> {
-        vec: RustVec<T>,
     }
 
     impl<T> SorobanArbitrary for Vec<T>
@@ -575,11 +572,19 @@ mod objects {
             match v {
                 ArbitraryVec::Good(v) => {
                     let mut buf: Vec<T> = Vec::new(env);
-                    for item in v.vec.iter() {
+                    for item in v.iter() {
                         buf.push_back(item.into_val(env));
                     }
                     Ok(buf)
                 }
+                ArbitraryVec::Wrong(v) => unsafe {
+                    let mut buf: Vec<Val> = Vec::new(env);
+                    for item in v.iter() {
+                        buf.push_back(item.into_val(env));
+                    }
+                    let buf = mem::transmute(buf);
+                    Ok(buf)
+                },
                 ArbitraryVec::Bad => unsafe {
                     let v = Val::from_body_and_tag(u64::MAX, Tag::VecObject);
                     v.try_into_val(env)
@@ -589,15 +594,12 @@ mod objects {
     }
 
     //////////////////////////////////
-    #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
-    pub enum ArbitraryMap<K, V> {
-        Good(ArbitraryMapGood<K, V>),
-        Bad,
-    }
 
     #[derive(Arbitrary, Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
-    pub struct ArbitraryMapGood<K, V> {
-        map: RustVec<(K, V)>,
+    pub enum ArbitraryMap<K, V> {
+        Good(RustVec<(K, V)>),
+        Wrong(RustVec<(ArbitraryVal, ArbitraryVal)>),
+        Bad,
     }
 
     impl<K, V> SorobanArbitrary for Map<K, V>
@@ -621,11 +623,19 @@ mod objects {
             match v {
                 ArbitraryMap::Good(v) => {
                     let mut map: Map<K, V> = Map::new(env);
-                    for (k, v) in v.map.iter() {
+                    for (k, v) in v.iter() {
                         map.set(k.into_val(env), v.into_val(env));
                     }
                     Ok(map)
                 }
+                ArbitraryMap::Wrong(v) => unsafe {
+                    let mut map: Map<Val, Val> = Map::new(env);
+                    for (k, v) in v.iter() {
+                        map.set(k.into_val(env), v.into_val(env));
+                    }
+                    let map = mem::transmute(map);
+                    Ok(map)
+                },
                 ArbitraryMap::Bad => unsafe {
                     let v = Val::from_body_and_tag(u64::MAX, Tag::MapObject);
                     v.try_into_val(env)
