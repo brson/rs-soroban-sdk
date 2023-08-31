@@ -322,6 +322,7 @@ mod objects {
     use soroban_env_host::TryIntoVal;
 
     use crate::arbitrary::composite::ArbitraryVal;
+    use crate::arbitrary::fuzz_test_helpers::val_from_body_and_tag;
     use soroban_env_host::Tag;
     use std::string::String as RustString;
     use std::vec::Vec as RustVec;
@@ -360,7 +361,7 @@ mod objects {
                     v.try_into_val(env)
                 }
                 ArbitraryU256::Bad => unsafe {
-                    let v = Val::from_body_and_tag(u64::MAX, Tag::U256Object);
+                    let v = val_from_body_and_tag(u64::MAX, Tag::U256Object);
                     v.try_into_val(env)
                 },
             }
@@ -399,7 +400,7 @@ mod objects {
                     v.try_into_val(env)
                 }
                 ArbitraryI256::Bad => unsafe {
-                    let v = Val::from_body_and_tag(u64::MAX, Tag::I256Object);
+                    let v = val_from_body_and_tag(u64::MAX, Tag::I256Object);
                     v.try_into_val(env)
                 },
             }
@@ -429,7 +430,7 @@ mod objects {
             match v {
                 ArbitraryBytes::Good(v) => Self::try_from_val(env, &v.vec.as_slice()),
                 ArbitraryBytes::Bad => unsafe {
-                    let v = Val::from_body_and_tag(u64::MAX, Tag::BytesObject);
+                    let v = val_from_body_and_tag(u64::MAX, Tag::BytesObject);
                     v.try_into_val(env)
                 },
             }
@@ -459,7 +460,7 @@ mod objects {
             match v {
                 ArbitraryString::Good(v) => Self::try_from_val(env, &v.inner.as_str()),
                 ArbitraryString::Bad => unsafe {
-                    let v = Val::from_body_and_tag(u64::MAX, Tag::StringObject);
+                    let v = val_from_body_and_tag(u64::MAX, Tag::StringObject);
                     v.try_into_val(env)
                 },
             }
@@ -489,7 +490,7 @@ mod objects {
             match v {
                 ArbitraryBytesN::Good(v) => Self::try_from_val(env, &v.array),
                 ArbitraryBytesN::Bad => unsafe {
-                    let v = Val::from_body_and_tag(u64::MAX, Tag::BytesObject);
+                    let v = val_from_body_and_tag(u64::MAX, Tag::BytesObject);
                     v.try_into_val(env)
                 },
             }
@@ -540,7 +541,7 @@ mod objects {
             match v {
                 ArbitrarySymbol::Good(v) => Self::try_from_val(env, &v.s.as_str()),
                 ArbitrarySymbol::Bad => unsafe {
-                    let v = Val::from_body_and_tag(u64::MAX, Tag::SymbolObject);
+                    let v = val_from_body_and_tag(u64::MAX, Tag::SymbolObject);
                     v.try_into_val(env)
                 },
             }
@@ -586,7 +587,7 @@ mod objects {
                     Ok(buf)
                 },
                 ArbitraryVec::Bad => unsafe {
-                    let v = Val::from_body_and_tag(u64::MAX, Tag::VecObject);
+                    let v = val_from_body_and_tag(u64::MAX, Tag::VecObject);
                     v.try_into_val(env)
                 },
             }
@@ -637,7 +638,7 @@ mod objects {
                     Ok(map)
                 },
                 ArbitraryMap::Bad => unsafe {
-                    let v = Val::from_body_and_tag(u64::MAX, Tag::MapObject);
+                    let v = val_from_body_and_tag(u64::MAX, Tag::MapObject);
                     v.try_into_val(env)
                 },
             }
@@ -671,7 +672,7 @@ mod objects {
                     Ok(sc_addr.into_val(env))
                 }
                 ArbitraryAddress::Bad => unsafe {
-                    let v = Val::from_body_and_tag(u64::MAX, Tag::AddressObject);
+                    let v = val_from_body_and_tag(u64::MAX, Tag::AddressObject);
                     v.try_into_val(env)
                 },
             }
@@ -723,6 +724,7 @@ mod composite {
     use soroban_env_host::Tag;
 
     use crate::arbitrary::api::*;
+    use crate::arbitrary::fuzz_test_helpers::val_from_body_and_tag;
     use crate::ConversionError;
     use crate::{Env, IntoVal, TryFromVal};
 
@@ -808,9 +810,9 @@ mod composite {
                     v.into_val(env)
                 }
                 ArbitraryVal::BadTagVal(v) => unsafe {
-                    let v = Val::from_body_and_tag(*v, Tag::Bad);
+                    let v = val_from_body_and_tag(*v, Tag::Bad);
                     v.into_val(env)
-                }
+                },
             })
         }
     }
@@ -1053,6 +1055,7 @@ mod composite {
 /// Additional tools for writing fuzz tests.
 mod fuzz_test_helpers {
     use soroban_env_host::call_with_suppressed_panic_hook;
+    use soroban_env_host::{Tag, Val};
 
     /// Catch panics within a fuzz test.
     ///
@@ -1098,6 +1101,16 @@ mod fuzz_test_helpers {
         F: FnOnce() -> R,
     {
         call_with_suppressed_panic_hook(std::panic::AssertUnwindSafe(f))
+    }
+
+    /// Local helper to create invalid Val's.
+    ///
+    /// This is functionally the same as Val::from_body_and_tag,
+    /// which is visible only to soroban-env-common.
+    pub(crate) unsafe fn val_from_body_and_tag(body: u64, tag: Tag) -> Val {
+        // Safety: Val is a repr(transparent) u64
+        const TAG_BITS: usize = 8;
+        std::mem::transmute((body << TAG_BITS) | (tag as u64))
     }
 }
 
