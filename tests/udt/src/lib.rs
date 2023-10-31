@@ -34,6 +34,10 @@ pub struct Contract;
 
 #[contractimpl]
 impl Contract {
+    pub fn recursion() {
+        Contract::recursion();
+    }
+
     pub fn add(a: UdtEnum, b: UdtEnum) -> i64 {
         let a = match a {
             UdtEnum::UdtA => 0,
@@ -55,6 +59,14 @@ impl Contract {
 mod test {
     use super::*;
     use soroban_sdk::{vec, xdr::ScVal, Bytes, Env, TryFromVal};
+
+    #[test]
+    fn test_recursion() {
+        let e = Env::default();
+        let contract_id = e.register_contract(None, Contract);
+        let client = ContractClient::new(&e, &contract_id);
+        client.recursion();
+    }
 
     #[test]
     fn test_serializing() {
