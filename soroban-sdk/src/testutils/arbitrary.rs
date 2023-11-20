@@ -478,6 +478,10 @@ mod objects {
                 s: RustString::from_utf8(chars).expect("utf8"),
             })
         }
+
+        fn size_hint(_depth: usize) -> (usize, Option<usize>) {
+            (0, None)
+        }
     }
 
     impl SorobanArbitrary for Symbol {
