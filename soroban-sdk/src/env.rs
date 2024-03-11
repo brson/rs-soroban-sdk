@@ -510,6 +510,10 @@ impl Env {
         Env::new_for_testutils(config, rf, None, info, None)
     }
 
+    pub fn set_base_prng_seed(&self, seed: [u8; 32]) {
+        self.env_impl.set_base_prng_seed(seed).unwrap();
+    }
+
     /// Used by multiple constructors to configure test environments consistently.
     fn new_for_testutils(
         config: EnvTestConfig,
